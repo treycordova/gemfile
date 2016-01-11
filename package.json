@@ -1,6 +1,6 @@
 {
   "name": "gemfile",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "A Gemfile.lock parser for Node.js represented with JSON.",
   "main": "gemfile.js",
   "scripts": {
