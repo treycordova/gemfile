@@ -21,5 +21,10 @@ interpret(gemfile) // String => String
 6. Everything other than "BUNDLED WITH" is an object.
 5. "BUNDLED WITH" is _not_ an Object, but rather a String containing the version.
 
+#### Tests
+```bash
+$ npm test
+```
+
 #### Contributions
 Please feel free to improve the script and submit a [pull request](https://github.com/treycordova/gemfile/compare).
