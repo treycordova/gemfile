@@ -5,7 +5,7 @@ let path = require('path');
 let assert = require('assert');
 let util = require('util');
 
-const GEMFILE_DEFAULT_LOCATION = path.resolve(__dirname, 'Gemfile.lock');
+const GEMFILE_DEFAULT_LOCATION = path.resolve(process.cwd(), 'Gemfile.lock');
 const WHITESPACE = /^(\s*)/;
 const GEMFILE_KEY_VALUE = /^\s*([^:(]*)\s*\:*\s*(.*)/;
 
