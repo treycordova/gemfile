@@ -42,7 +42,6 @@ describe('gemfile', function() {
 
       it('adjusts "BUNDLED WITH" by changing it to a String indicating version', function() {
         let output = gemfile.interpret(file);
-
         assert.property(output, 'BUNDLED WITH');
         assert.match(output['BUNDLED WITH'], /\d{1,3}\.\d{1,3}\.\d{1,3}/);
       });
@@ -130,6 +129,30 @@ describe('gemfile', function() {
       }).catch(function(error) {
         throw error;
       });
+    });
+  });
+
+  describe('meta analysis', function () {
+    const file = fs.readFileSync('test/Gemfile2.lock', 'utf8');
+    it('outputs an Object with three mandatory keys', function() {
+      let output = gemfile.interpret(file);
+
+      assert.property(output, 'GEM');
+      assert.property(output, 'GIT');
+      assert.property(output, 'DEPENDENCIES');
+      assert.property(output, 'PLATFORMS');
+    });
+
+    it('has a good meta specs', function () {
+      let output = gemfile.interpret(file, true);
+      assert.property(output.specs, 'rspec');
+      assert.property(output.specs, 'nokogiri');
+      assert.property(output.specs, 'activemodel');
+    });
+
+    it('has actual metadata', function () {
+      let output = gemfile.interpret(file, true);
+      assert.property(output.specs.rspec, 'revision');
     });
   });
 });
