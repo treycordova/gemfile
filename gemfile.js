@@ -1,13 +1,14 @@
 'use strict';
 
-let fs = require('fs');
-let path = require('path');
-let assert = require('assert');
-let util = require('util');
+const fs = require('fs');
+const path = require('path');
+const assert = require('assert');
+const util = require('util');
 
 const GEMFILE_DEFAULT_LOCATION = path.resolve(process.cwd(), 'Gemfile.lock');
 const WHITESPACE = /^(\s*)/;
 const GEMFILE_KEY_VALUE = /^\s*([^:(]*)\s*\:*\s*(.*)/;
+const ORIGINS = ['GEM', 'GIT', 'PATH'];
 
 module.exports = {
   interpret,
@@ -15,17 +16,32 @@ module.exports = {
   parseSync
 };
 
-function interpret(string) {
+const dupKeyMap = () => {
+  let counter = 0;
+  return new Proxy({}, {
+    set(target, key, value) {
+      if (target[key]) {
+        target[key + (counter++)] = target[key];
+      }
+      target[key] = value;
+      return true;
+    }
+  });
+};
+
+function interpret(string, extractMeta) {
   assert(
     typeof string === 'string',
     'gemfile.interpret expects a UTF-8 Gemfile.lock string source.'
   );
 
+  const gemfileMeta = {};
+
   let line;
   let level;
   let index = 0;
   let previousWhitespace = -1;
-  let gemfile = level = {};
+  let gemfile = level = dupKeyMap();
   let lines = string.split('\n');
   let stack = [];
 
@@ -114,10 +130,30 @@ function interpret(string) {
     gemfile['BUNDLED WITH'] = Object.keys(gemfile['BUNDLED WITH'])[0];
   }
 
+  if (extractMeta) {
+    gemfileMeta.bundledWith = gemfile['BUNDLED WITH'];
+    gemfileMeta.platforms = gemfile['PLATFORMS'];
+    gemfileMeta.dependencies = gemfile['DEPENDENCIES'];
+    gemfileMeta.specs = Object.keys(gemfile)
+                              .filter(key =>
+                                ORIGINS.some(origin => key.startsWith(origin)))
+                              .reduce((specs, key) => {
+                                const type = key.match(/[A-Z]+/)[0];
+                                const meta = Object.assign({ type }, gemfile[key]);
+                                delete meta.specs;
+                                Object.assign(specs, Object.keys(gemfile[key].specs).reduce((specs, gem) => {
+                                  specs[gem] = Object.assign({}, gemfile[key].specs[gem], meta);
+                                  return specs;
+                                }, {}));
+                                return specs;
+                              }, {});  
+    return gemfileMeta;
+  }
+
   return gemfile;
 }
 
-function parse(path) {
+function parse(path, extractMeta) {
   path = typeof path === 'string' ?
     path :
     GEMFILE_DEFAULT_LOCATION;
@@ -127,16 +163,16 @@ function parse(path) {
       if (error) {
         return reject(`Couldn't find a Gemfile at the specified location: ${path}.`);
       } else {
-        return resolve(interpret(gemfile));
+        return resolve(interpret(gemfile, extractMeta));
       }
     });
   });
 }
 
-function parseSync(path) {
+function parseSync(path, extractMeta) {
   path = typeof path === 'string' ?
     path :
     GEMFILE_DEFAULT_LOCATION;
 
-  return interpret(fs.readFileSync(path, 'utf8'));
+  return interpret(fs.readFileSync(path, 'utf8'), extractMeta);
 }
